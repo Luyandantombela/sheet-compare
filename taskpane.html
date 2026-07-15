@@ -5,127 +5,192 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Sheet Compare</title>
   <link rel="stylesheet" href="taskpane.css" />
-  <!-- Office.js -->
   <script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js" type="text/javascript"></script>
 </head>
 <body>
-  <div id="app">
 
-    <!-- Header -->
-    <header class="header">
-      <span class="logo">⚖️ Sheet Compare</span>
-    </header>
+<div id="app">
 
-    <!-- Step 1: Select Ranges -->
-    <section class="card" id="section-ranges">
-      <h2 class="section-title">1 — Select Tables</h2>
+  <!-- Header -->
+  <header class="header">
+    <div class="header-icon">⚖</div>
+    <div class="header-text">
+      <span class="header-title">Sheet Compare</span>
+      <span class="header-sub">Excel Add-in</span>
+    </div>
+  </header>
 
-      <div class="range-row">
-        <div class="range-info" id="rangeA-info">
-          <span class="range-label">Table A</span>
-          <span class="range-addr" id="rangeA-addr">Not selected</span>
+  <!-- ── STEP 1: Table A ───────────────────────────────────── -->
+  <div class="step" id="step-a">
+    <div class="step-label">
+      <span class="step-num active" id="num-a">1</span>
+      <span class="step-title">Select Table A</span>
+    </div>
+
+    <div class="capture-card" id="card-a">
+      <div class="capture-idle" id="idle-a">
+        <p class="capture-hint">Select a range in your workbook (including header row), then click below.</p>
+        <button class="btn btn-primary" id="btnSelectA">
+          <span class="btn-icon">+</span> Capture Selection
+        </button>
+      </div>
+      <div class="capture-done" id="done-a" style="display:none;">
+        <div class="done-badge">✓</div>
+        <div class="done-info">
+          <span class="done-name" id="done-a-name">—</span>
+          <span class="done-meta" id="done-a-meta">—</span>
         </div>
-        <button class="btn btn-outline" id="btnSelectA">Select Range</button>
+        <button class="btn-reselect" id="btnReA" title="Re-select">↺</button>
       </div>
+    </div>
+  </div>
 
-      <div class="range-row">
-        <div class="range-info" id="rangeB-info">
-          <span class="range-label">Table B</span>
-          <span class="range-addr" id="rangeB-addr">Not selected</span>
+  <!-- ── STEP 2: Table B ───────────────────────────────────── -->
+  <div class="step step-locked" id="step-b">
+    <div class="step-label">
+      <span class="step-num" id="num-b">2</span>
+      <span class="step-title">Select Table B</span>
+    </div>
+
+    <div class="capture-card" id="card-b">
+      <div class="capture-idle" id="idle-b">
+        <p class="capture-hint">Can be on a different sheet than Table A.</p>
+        <button class="btn btn-primary" id="btnSelectB" disabled>
+          <span class="btn-icon">+</span> Capture Selection
+        </button>
+      </div>
+      <div class="capture-done" id="done-b" style="display:none;">
+        <div class="done-badge">✓</div>
+        <div class="done-info">
+          <span class="done-name" id="done-b-name">—</span>
+          <span class="done-meta" id="done-b-meta">—</span>
         </div>
-        <button class="btn btn-outline" id="btnSelectB">Select Range</button>
+        <button class="btn-reselect" id="btnReB" title="Re-select">↺</button>
       </div>
-    </section>
+    </div>
+  </div>
 
-    <!-- Step 2: Key Columns -->
-    <section class="card" id="section-keys">
-      <h2 class="section-title">2 — Key Columns</h2>
-      <p class="hint">Select one or more columns that uniquely identify a row (composite key).</p>
-      <div class="multi-select-wrap">
-        <select id="keyColumns" multiple size="5">
-          <option disabled>— select tables first —</option>
-        </select>
-      </div>
-    </section>
+  <!-- ── STEP 3: Key Columns ──────────────────────────────── -->
+  <div class="step step-locked" id="step-keys">
+    <div class="step-label">
+      <span class="step-num" id="num-keys">3</span>
+      <span class="step-title">Key Columns</span>
+    </div>
+    <div class="card">
+      <p class="capture-hint">Columns that uniquely identify a row. Hold <kbd>Ctrl</kbd> to pick multiple.</p>
+      <select id="keyColumns" multiple size="4"></select>
+    </div>
+  </div>
 
-    <!-- Step 3: Comparison Modes -->
-    <section class="card" id="section-modes">
-      <h2 class="section-title">3 — Comparison Modes</h2>
+  <!-- ── STEP 4: Comparison Modes ─────────────────────────── -->
+  <div class="step step-locked" id="step-modes">
+    <div class="step-label">
+      <span class="step-num" id="num-modes">4</span>
+      <span class="step-title">What to Compare</span>
+    </div>
+    <div class="card modes-grid">
 
-      <label class="checkbox-row">
+      <label class="mode-chip" id="chip-missing">
         <input type="checkbox" id="modeMissing" checked />
-        <span><strong>Missing</strong> — rows in A not in B, and rows in B not in A</span>
-      </label>
-      <label class="checkbox-row">
-        <input type="checkbox" id="modeMatching" checked />
-        <span><strong>Matching</strong> — keys present in both tables</span>
-      </label>
-      <label class="checkbox-row">
-        <input type="checkbox" id="modeDifferent" checked />
-        <span><strong>Different</strong> — same key, different column values</span>
-      </label>
-
-      <!-- Columns to compare (shown when Different is checked) -->
-      <div id="diffColumnsWrap" class="sub-option">
-        <label class="sub-label">Columns to compare (for Different):</label>
-        <div class="multi-select-wrap">
-          <select id="diffColumns" multiple size="4">
-            <option disabled>— select tables &amp; keys first —</option>
-          </select>
+        <div class="chip-inner">
+          <span class="chip-icon">⬡</span>
+          <span class="chip-label">Missing</span>
+          <span class="chip-desc">Rows in A not in B, and vice versa</span>
         </div>
-        <span class="hint">Leave all unselected to compare every non-key column.</span>
-      </div>
-    </section>
+      </label>
 
-    <!-- Step 4: Options -->
-    <section class="card" id="section-options">
-      <h2 class="section-title">4 — Options</h2>
+      <label class="mode-chip" id="chip-matching">
+        <input type="checkbox" id="modeMatching" checked />
+        <div class="chip-inner">
+          <span class="chip-icon">◈</span>
+          <span class="chip-label">Matching</span>
+          <span class="chip-desc">Keys present in both tables</span>
+        </div>
+      </label>
 
-      <label class="toggle-row">
-        <span>Ignore case &amp; trim whitespace</span>
+      <label class="mode-chip" id="chip-different">
+        <input type="checkbox" id="modeDifferent" checked />
+        <div class="chip-inner">
+          <span class="chip-icon">◇</span>
+          <span class="chip-label">Different</span>
+          <span class="chip-desc">Same key, different values</span>
+        </div>
+      </label>
+
+    </div>
+
+    <!-- Diff columns sub-option — only visible when Different is checked -->
+    <div class="sub-reveal" id="diffColsReveal">
+      <p class="capture-hint" style="margin-bottom:6px;">Columns to compare <em>(leave blank = all non-key columns)</em>:</p>
+      <select id="diffColumns" multiple size="3"></select>
+    </div>
+  </div>
+
+  <!-- ── STEP 5: Options ──────────────────────────────────── -->
+  <div class="step step-locked" id="step-opts">
+    <div class="step-label clickable" id="opts-toggle">
+      <span class="step-num" id="num-opts">5</span>
+      <span class="step-title">Options</span>
+      <span class="chevron" id="opts-chevron">›</span>
+    </div>
+    <div class="card opts-body" id="opts-body">
+
+      <div class="opt-row">
+        <div class="opt-text">
+          <span class="opt-label">Ignore case &amp; trim whitespace</span>
+          <span class="opt-desc">"John " = "john"</span>
+        </div>
         <label class="toggle">
           <input type="checkbox" id="optIgnoreCase" checked />
           <span class="slider"></span>
         </label>
-      </label>
+      </div>
 
-      <label class="toggle-row">
-        <span>Numeric tolerance</span>
+      <div class="opt-row">
+        <div class="opt-text">
+          <span class="opt-label">Numeric tolerance</span>
+          <span class="opt-desc">19.9999 ≈ 20.0</span>
+        </div>
         <label class="toggle">
           <input type="checkbox" id="optNumericTol" checked />
           <span class="slider"></span>
         </label>
-      </label>
-      <div id="tolWrap" class="sub-option tolerance-row">
-        <label for="tolValue">Tolerance:</label>
+      </div>
+      <div class="tol-row" id="tolWrap">
+        <span class="opt-desc">Tolerance value:</span>
         <input type="number" id="tolValue" value="0.001" min="0" step="any" class="tol-input" />
       </div>
-    </section>
 
-    <!-- Run -->
-    <section class="run-section">
-      <button class="btn btn-primary" id="btnRun">▶ Run Comparison</button>
-      <button class="btn btn-secondary" id="btnHighlight" style="display:none;">🎨 Highlight in Source Sheets</button>
-      <button class="btn btn-outline" id="btnExportCsv" style="display:none;">⬇ Export Report as CSV</button>
-    </section>
-
-    <!-- Messages -->
-    <div id="messages"></div>
-
-    <!-- Warning modal -->
-    <div id="modal-overlay" class="modal-overlay" style="display:none;">
-      <div class="modal">
-        <h3 id="modal-title">⚠️ Duplicate Keys Detected</h3>
-        <p id="modal-body"></p>
-        <div class="modal-actions">
-          <button class="btn btn-outline" id="btnModalCancel">Cancel</button>
-          <button class="btn btn-primary" id="btnModalProceed">Proceed Anyway</button>
-        </div>
-      </div>
     </div>
-
   </div>
 
-  <script src="taskpane.js"></script>
+  <!-- ── Run ──────────────────────────────────────────────── -->
+  <div class="run-area" id="run-area" style="display:none;">
+    <button class="btn btn-run" id="btnRun">▶  Run Comparison</button>
+    <div class="action-row" id="action-row" style="display:none;">
+      <button class="btn btn-ghost" id="btnHighlight">🎨 Highlight Sources</button>
+      <button class="btn btn-ghost" id="btnExportCsv">⬇ Export CSV</button>
+    </div>
+  </div>
+
+  <!-- ── Messages ─────────────────────────────────────────── -->
+  <div id="messages"></div>
+
+  <!-- ── Duplicate key warning modal ─────────────────────── -->
+  <div id="modal-overlay" class="modal-overlay" style="display:none;">
+    <div class="modal">
+      <div class="modal-icon">⚠</div>
+      <h3 id="modal-title">Duplicate Keys</h3>
+      <p id="modal-body"></p>
+      <div class="modal-actions">
+        <button class="btn btn-ghost" id="btnModalCancel">Cancel</button>
+        <button class="btn btn-primary" id="btnModalProceed">Proceed Anyway</button>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /#app -->
+
+<script src="taskpane.js"></script>
 </body>
 </html>
