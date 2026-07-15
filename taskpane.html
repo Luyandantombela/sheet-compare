@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sheet Compare</title>
+  <link rel="stylesheet" href="taskpane.css" />
+  <!-- Office.js -->
+  <script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js" type="text/javascript"></script>
+</head>
+<body>
+  <div id="app">
+
+    <!-- Header -->
+    <header class="header">
+      <span class="logo">⚖️ Sheet Compare</span>
+    </header>
+
+    <!-- Step 1: Select Ranges -->
+    <section class="card" id="section-ranges">
+      <h2 class="section-title">1 — Select Tables</h2>
+
+      <div class="range-row">
+        <div class="range-info" id="rangeA-info">
+          <span class="range-label">Table A</span>
+          <span class="range-addr" id="rangeA-addr">Not selected</span>
+        </div>
+        <button class="btn btn-outline" id="btnSelectA">Select Range</button>
+      </div>
+
+      <div class="range-row">
+        <div class="range-info" id="rangeB-info">
+          <span class="range-label">Table B</span>
+          <span class="range-addr" id="rangeB-addr">Not selected</span>
+        </div>
+        <button class="btn btn-outline" id="btnSelectB">Select Range</button>
+      </div>
+    </section>
+
+    <!-- Step 2: Key Columns -->
+    <section class="card" id="section-keys">
+      <h2 class="section-title">2 — Key Columns</h2>
+      <p class="hint">Select one or more columns that uniquely identify a row (composite key).</p>
+      <div class="multi-select-wrap">
+        <select id="keyColumns" multiple size="5">
+          <option disabled>— select tables first —</option>
+        </select>
+      </div>
+    </section>
+
+    <!-- Step 3: Comparison Modes -->
+    <section class="card" id="section-modes">
+      <h2 class="section-title">3 — Comparison Modes</h2>
+
+      <label class="checkbox-row">
+        <input type="checkbox" id="modeMissing" checked />
+        <span><strong>Missing</strong> — rows in A not in B, and rows in B not in A</span>
+      </label>
+      <label class="checkbox-row">
+        <input type="checkbox" id="modeMatching" checked />
+        <span><strong>Matching</strong> — keys present in both tables</span>
+      </label>
+      <label class="checkbox-row">
+        <input type="checkbox" id="modeDifferent" checked />
+        <span><strong>Different</strong> — same key, different column values</span>
+      </label>
+
+      <!-- Columns to compare (shown when Different is checked) -->
+      <div id="diffColumnsWrap" class="sub-option">
+        <label class="sub-label">Columns to compare (for Different):</label>
+        <div class="multi-select-wrap">
+          <select id="diffColumns" multiple size="4">
+            <option disabled>— select tables &amp; keys first —</option>
+          </select>
+        </div>
+        <span class="hint">Leave all unselected to compare every non-key column.</span>
+      </div>
+    </section>
+
+    <!-- Step 4: Options -->
+    <section class="card" id="section-options">
+      <h2 class="section-title">4 — Options</h2>
+
+      <label class="toggle-row">
+        <span>Ignore case &amp; trim whitespace</span>
+        <label class="toggle">
+          <input type="checkbox" id="optIgnoreCase" checked />
+          <span class="slider"></span>
+        </label>
+      </label>
+
+      <label class="toggle-row">
+        <span>Numeric tolerance</span>
+        <label class="toggle">
+          <input type="checkbox" id="optNumericTol" checked />
+          <span class="slider"></span>
+        </label>
+      </label>
+      <div id="tolWrap" class="sub-option tolerance-row">
+        <label for="tolValue">Tolerance:</label>
+        <input type="number" id="tolValue" value="0.001" min="0" step="any" class="tol-input" />
+      </div>
+    </section>
+
+    <!-- Run -->
+    <section class="run-section">
+      <button class="btn btn-primary" id="btnRun">▶ Run Comparison</button>
+      <button class="btn btn-secondary" id="btnHighlight" style="display:none;">🎨 Highlight in Source Sheets</button>
+      <button class="btn btn-outline" id="btnExportCsv" style="display:none;">⬇ Export Report as CSV</button>
+    </section>
+
+    <!-- Messages -->
+    <div id="messages"></div>
+
+    <!-- Warning modal -->
+    <div id="modal-overlay" class="modal-overlay" style="display:none;">
+      <div class="modal">
+        <h3 id="modal-title">⚠️ Duplicate Keys Detected</h3>
+        <p id="modal-body"></p>
+        <div class="modal-actions">
+          <button class="btn btn-outline" id="btnModalCancel">Cancel</button>
+          <button class="btn btn-primary" id="btnModalProceed">Proceed Anyway</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script src="taskpane.js"></script>
+</body>
+</html>
