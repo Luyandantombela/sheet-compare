@@ -70,28 +70,16 @@
     </div>
   </div>
 
-  <!-- ── STEP 3: Key Columns ──────────────────────────────── -->
-  <div class="step step-locked" id="step-keys">
-    <div class="step-label">
-      <span class="step-num" id="num-keys">3</span>
-      <span class="step-title">Key Columns</span>
-    </div>
-    <div class="card">
-      <p class="capture-hint">Columns that uniquely identify a row. Hold <kbd>Ctrl</kbd> to pick multiple.</p>
-      <select id="keyColumns" multiple size="4"></select>
-    </div>
-  </div>
-
-  <!-- ── STEP 4: Comparison Modes ─────────────────────────── -->
+  <!-- ── STEP 3: What to Compare ─────────────────────────── -->
   <div class="step step-locked" id="step-modes">
     <div class="step-label">
-      <span class="step-num" id="num-modes">4</span>
+      <span class="step-num" id="num-modes">3</span>
       <span class="step-title">What to Compare</span>
     </div>
     <div class="card modes-grid">
 
       <label class="mode-chip" id="chip-missing">
-        <input type="checkbox" id="modeMissing" checked />
+        <input type="radio" name="compareMode" id="modeMissing" value="missing" />
         <div class="chip-inner">
           <span class="chip-icon">⬡</span>
           <span class="chip-label">Missing</span>
@@ -100,16 +88,16 @@
       </label>
 
       <label class="mode-chip" id="chip-matching">
-        <input type="checkbox" id="modeMatching" checked />
+        <input type="radio" name="compareMode" id="modeMatching" value="matching" />
         <div class="chip-inner">
           <span class="chip-icon">◈</span>
           <span class="chip-label">Matching</span>
-          <span class="chip-desc">Keys present in both tables</span>
+          <span class="chip-desc">Identical rows present in both tables</span>
         </div>
       </label>
 
       <label class="mode-chip" id="chip-different">
-        <input type="checkbox" id="modeDifferent" checked />
+        <input type="radio" name="compareMode" id="modeDifferent" value="different" />
         <div class="chip-inner">
           <span class="chip-icon">◇</span>
           <span class="chip-label">Different</span>
@@ -118,8 +106,19 @@
       </label>
 
     </div>
+  </div>
 
-    <!-- Diff columns sub-option — only visible when Different is checked -->
+  <!-- ── STEP 4: Key Columns (only for Different mode) ────── -->
+  <div class="step step-locked" id="step-keys">
+    <div class="step-label">
+      <span class="step-num" id="num-keys">4</span>
+      <span class="step-title">Key Columns</span>
+    </div>
+    <div class="card">
+      <p class="capture-hint">Columns that uniquely identify a row. Hold <kbd>Ctrl</kbd> to pick multiple.</p>
+      <select id="keyColumns" multiple size="4"></select>
+    </div>
+    <!-- Columns to compare — always shown in this step -->
     <div class="sub-reveal" id="diffColsReveal">
       <p class="capture-hint" style="margin-bottom:6px;">Columns to compare <em>(leave blank = all non-key columns)</em>:</p>
       <select id="diffColumns" multiple size="3"></select>
