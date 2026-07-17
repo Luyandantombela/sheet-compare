@@ -504,15 +504,15 @@ async function writeReportSheet(result, headersA, headersB, keys, diffCols, mode
 
     if (modes.missing && result.missingFromB.length > 0)
       await writeSection("Missing from B (" + result.missingFromB.length + ")", headersA,
-        result.missingFromB.map(({ row }) => headersA.map((_, i) => row[i] ?? "")), "#1a0a0a");
+        result.missingFromB.map(({ row }) => headersA.map((_, i) => row[i] ?? "")));
 
     if (modes.missing && result.missingFromA.length > 0)
       await writeSection("Missing from A (" + result.missingFromA.length + ")", headersB,
-        result.missingFromA.map(({ row }) => headersB.map((_, i) => row[i] ?? "")), "#1a0a0a");
+        result.missingFromA.map(({ row }) => headersB.map((_, i) => row[i] ?? "")));
 
     if (modes.matching && result.matching.length > 0)
       await writeSection("Matching (" + result.matching.length + ")", headersA,
-        result.matching.map(({ rowA }) => headersA.map((_, i) => rowA[i] ?? "")), "#0a1a0a");
+        result.matching.map(({ rowA }) => headersA.map((_, i) => rowA[i] ?? "")));
 
     if (modes.different && result.different.length > 0) {
       const difCols = [...keys, ...diffCols.flatMap((c) => [c + " (A)", c + " (B)"])];
@@ -523,7 +523,7 @@ async function writeReportSheet(result, headersA, headersB, keys, diffCols, mode
           return [iA >= 0 ? rowA[iA] ?? "" : "", iB >= 0 ? rowB[iB] ?? "" : ""];
         }),
       ]);
-      await writeSection("Different (" + result.different.length + ")", difCols, difRows, "#1a1a00");
+      await writeSection("Different (" + result.different.length + ")", difCols, difRows);
     }
 
     rpt.getRangeByIndexes(0, 0, r + 1, Math.max(headersA.length, headersB.length, 10))
