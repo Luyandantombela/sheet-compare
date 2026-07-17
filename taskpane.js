@@ -21,13 +21,13 @@ Office.onReady(function () {
   $("btnReA").onclick      = () => resetCapture("A");
   $("btnReB").onclick      = () => resetCapture("B");
 
+  // Mode radio buttons → show/hide key columns, refresh run button
+  $("modeMissing").onchange   = onModeChange;
+  $("modeMatching").onchange  = onModeChange;
+  $("modeDifferent").onchange = onModeChange;
+
   // Key columns change → refresh diff columns & run button
   $("keyColumns").onchange = () => { rebuildDiffColumns(); refreshRunButton(); };
-
-  // Mode chips → show/hide diff columns panel, refresh run button
-  $("modeMissing").onchange   = refreshRunButton;
-  $("modeMatching").onchange  = refreshRunButton;
-  $("modeDifferent").onchange = () => { toggleDiffCols(); refreshRunButton(); };
 
   // Options accordion
   $("opts-toggle").onclick = toggleOpts;
@@ -49,7 +49,6 @@ Office.onReady(function () {
   setStepState("keys",  false);
   setStepState("modes", false);
   setStepState("opts",  false);
-  toggleDiffCols();
 });
 
 // ── Step unlock helpers ───────────────────────────────────────────────────────
@@ -150,20 +149,38 @@ function onCaptureComplete() {
   setStepState("b", hasA);
   if (hasA) $("btnSelectB").disabled = false;
 
-  // Unlock keys after both captured
   const bothDone = hasA && hasB;
-  setStepState("keys",  bothDone);
+  // Unlock modes (step 3) when both tables are ready
   setStepState("modes", bothDone);
   setStepState("opts",  bothDone);
 
+  // Keys (step 4) only unlocks when mode is "different"
+  const mode = selectedMode();
+  const showKeys = bothDone && mode === "different";
+  setStepState("keys", showKeys);
+
   if (bothDone) {
-    rebuildKeyColumns();
-    rebuildDiffColumns();
+    if (showKeys) {
+      rebuildKeyColumns();
+      rebuildDiffColumns();
+    }
     refreshRunButton();
   } else {
     $("run-area").style.display = "none";
     resetKeySelect();
   }
+}
+
+function onModeChange() {
+  const bothDone = !!state.rangeA && !!state.rangeB;
+  const mode = selectedMode();
+  const showKeys = bothDone && mode === "different";
+  setStepState("keys", showKeys);
+  if (showKeys) {
+    rebuildKeyColumns();
+    rebuildDiffColumns();
+  }
+  refreshRunButton();
 }
 
 // ── Column selects ────────────────────────────────────────────────────────────
@@ -220,18 +237,23 @@ function rebuildDiffColumns() {
   });
 }
 
-function toggleDiffCols() {
-  const show = $("modeDifferent").checked;
-  $("diffColsReveal").style.display = show ? "" : "none";
-}
-
 function refreshRunButton() {
-  const keys    = selectedKeys();
-  const anyMode = $("modeMissing").checked || $("modeMatching").checked || $("modeDifferent").checked;
-  const ready   = state.rangeA && state.rangeB && keys.length > 0 && anyMode;
+  const mode     = selectedMode();
+  const bothDone = !!state.rangeA && !!state.rangeB;
+  let ready = false;
+  if (mode === "missing" || mode === "matching") {
+    ready = bothDone;
+  } else if (mode === "different") {
+    ready = bothDone && selectedKeys().length > 0;
+  }
   $("run-area").style.display = ready ? "" : "none";
 }
 
+function selectedMode() {
+  const radios = document.querySelectorAll('input[name="compareMode"]');
+  for (const r of radios) { if (r.checked) return r.value; }
+  return null;
+}
 function selectedKeys()     { return Array.from($("keyColumns").selectedOptions).map((o) => o.value); }
 function selectedDiffCols() { return Array.from($("diffColumns").selectedOptions).map((o) => o.value); }
 
@@ -369,47 +391,42 @@ async function runCompareBatched(mapA, mapB, headersA, headersB, keys, diffCols,
 async function runComparison() {
   clearMessages();
 
-  const keys       = selectedKeys();
+  const mode       = selectedMode();
   const ignoreCase = $("optIgnoreCase").checked;
   const numericTol = $("optNumericTol").checked ? (parseFloat($("tolValue").value) || 0) : null;
-  const modes      = {
-    missing:   $("modeMissing").checked,
-    matching:  $("modeMatching").checked,
-    different: $("modeDifferent").checked,
-  };
-  const headersA = state.rangeA.headers;
-  const headersB = state.rangeB.headers;
-  const keyIdxA  = keys.map((k) => headersA.indexOf(k));
-  const keyIdxB  = keys.map((k) => headersB.indexOf(k));
+  const modes      = { missing: mode === "missing", matching: mode === "matching", different: mode === "different" };
+  const headersA   = state.rangeA.headers;
+  const headersB   = state.rangeB.headers;
 
-  if (keyIdxA.some((i) => i < 0)) { showMsg("Key column not found in Table A.", "error"); return; }
-  if (keyIdxB.some((i) => i < 0)) { showMsg("Key column not found in Table B.", "error"); return; }
+  // For missing/matching: auto-use all common columns as the key (full-row match).
+  // For different: user picks key columns explicitly.
+  let keys;
+  if (mode === "different") {
+    keys = selectedKeys();
+    if (keys.length === 0) { showMsg("Select at least one key column.", "error"); return; }
+  } else {
+    keys = headersA.filter((h) => headersB.includes(h));
+    if (keys.length === 0) { showMsg("Tables share no common column headers.", "error"); return; }
+  }
 
-  // Blank key check
-  for (const row of state.rangeA.data) {
-    if (keyIdxA.some((i) => row[i] == null || String(row[i]).trim() === "")) {
-      showMsg("Table A has rows with blank key values.", "error"); return;
+  const keyIdxA = keys.map((k) => headersA.indexOf(k));
+  const keyIdxB = keys.map((k) => headersB.indexOf(k));
+
+  // Duplicate key warning (only relevant for "different" mode)
+  if (mode === "different") {
+    const dupA = findDuplicates(state.rangeA.data, keyIdxA, ignoreCase);
+    const dupB = findDuplicates(state.rangeB.data, keyIdxB, ignoreCase);
+    if (dupA.length > 0 || dupB.length > 0) {
+      let msg = "";
+      if (dupA.length) msg += "Table A:\n" + dupA.slice(0, 8).join("\n") + (dupA.length > 8 ? "\n…+" + (dupA.length - 8) + " more" : "") + "\n\n";
+      if (dupB.length) msg += "Table B:\n" + dupB.slice(0, 8).join("\n") + (dupB.length > 8 ? "\n…+" + (dupB.length - 8) + " more" : "");
+      const ok = await showModal("Duplicate Keys Detected", msg.trim() + "\n\nFirst occurrence used for matching. Proceed?");
+      if (!ok) return;
     }
   }
-  for (const row of state.rangeB.data) {
-    if (keyIdxB.some((i) => row[i] == null || String(row[i]).trim() === "")) {
-      showMsg("Table B has rows with blank key values.", "error"); return;
-    }
-  }
 
-  // Duplicate key warning
-  const dupA = findDuplicates(state.rangeA.data, keyIdxA, ignoreCase);
-  const dupB = findDuplicates(state.rangeB.data, keyIdxB, ignoreCase);
-  if (dupA.length > 0 || dupB.length > 0) {
-    let msg = "";
-    if (dupA.length) msg += "Table A:\n" + dupA.slice(0, 8).join("\n") + (dupA.length > 8 ? "\n…+" + (dupA.length - 8) + " more" : "") + "\n\n";
-    if (dupB.length) msg += "Table B:\n" + dupB.slice(0, 8).join("\n") + (dupB.length > 8 ? "\n…+" + (dupB.length - 8) + " more" : "");
-    const ok = await showModal("Duplicate Keys Detected", msg.trim() + "\n\nFirst occurrence used for matching. Proceed?");
-    if (!ok) return;
-  }
-
-  let diffCols = selectedDiffCols();
-  if (diffCols.length === 0) {
+  let diffCols = mode === "different" ? selectedDiffCols() : [];
+  if (mode === "different" && diffCols.length === 0) {
     diffCols = [...new Set([
       ...headersA.filter((h) => !keys.includes(h)),
       ...headersB.filter((h) => !keys.includes(h)),
@@ -427,13 +444,12 @@ async function runComparison() {
     state.lastResult = { result, headersA, headersB, keys, diffCols };
     await writeReportSheet(result, headersA, headersB, keys, diffCols, modes);
     $("action-row").style.display = "flex";
-    showMsg(
-      "Report ready — Missing from B: " + result.missingFromB.length +
-      "  ·  Missing from A: " + result.missingFromA.length +
-      "  ·  Matching: " + result.matching.length +
-      "  ·  Different: " + result.different.length,
-      "success"
-    );
+    const label = mode === "missing"
+      ? "Missing from B: " + result.missingFromB.length + "  ·  Missing from A: " + result.missingFromA.length
+      : mode === "matching"
+      ? "Matching rows: " + result.matching.length
+      : "Different: " + result.different.length + "  ·  Matching: " + result.matching.length;
+    showMsg("Report ready — " + label, "success");
   } catch (err) {
     showMsg("Error: " + friendlyError(err), "error");
   } finally {
