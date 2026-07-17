@@ -110,27 +110,30 @@ async function captureRange(which) {
 }
 
 function showCaptureDone(which, result) {
-  // Swap idle → done panels
-  $("idle-" + which).style.display = "none";
-  $("done-" + which).style.display = "flex";
+  // FIX: use lowercase for element IDs (idle-a, done-a, done-a-name, done-a-meta)
+  const lc = which.toLowerCase();
+  $("idle-" + lc).style.display = "none";
+  $("done-" + lc).style.display = "flex";
 
   // Show info
   const addr = result.address.split("!").pop().replace(/\$/g, "");
-  $("done-" + which + "-name").textContent =
+  $("done-" + lc + "-name").textContent =
     result.sheetName + "  ·  " + addr;
-  $("done-" + which + "-meta").textContent =
+  $("done-" + lc + "-meta").textContent =
     result.headers.length + " columns  ·  " + result.data.length + " rows";
 
-  markStepDone(which.toLowerCase());
+  markStepDone(lc);
 }
 
 function resetCapture(which) {
   state["range" + which] = null;
-  $("idle-" + which).style.display = "";
-  $("done-" + which).style.display = "none";
-  $("btnSelect" + which).disabled   = false;
+  // FIX: use lowercase for element IDs
+  const lc = which.toLowerCase();
+  $("idle-" + lc).style.display = "";
+  $("done-" + lc).style.display = "none";
+  $("btnSelect" + which).disabled = false;
 
-  const num = $("num-" + which.toLowerCase());
+  const num = $("num-" + lc);
   if (num) { num.classList.remove("done"); num.classList.add("active"); num.textContent = which === "A" ? "1" : "2"; }
 
   // Reset downstream steps
