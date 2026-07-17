@@ -154,9 +154,9 @@ function onCaptureComplete() {
   setStepState("modes", bothDone);
   setStepState("opts",  bothDone);
 
-  // Keys (step 4) only unlocks when mode is "different"
+  // Keys (step 4) unlocks for all modes once both tables are captured
   const mode = selectedMode();
-  const showKeys = bothDone && mode === "different";
+  const showKeys = bothDone && !!mode;
   setStepState("keys", showKeys);
 
   if (bothDone) {
@@ -164,6 +164,8 @@ function onCaptureComplete() {
       rebuildKeyColumns();
       rebuildDiffColumns();
     }
+    // Show/hide "Columns to compare" — only relevant for "different"
+    $("diffColsReveal").style.display = mode === "different" ? "" : "none";
     refreshRunButton();
   } else {
     $("run-area").style.display = "none";
@@ -174,12 +176,14 @@ function onCaptureComplete() {
 function onModeChange() {
   const bothDone = !!state.rangeA && !!state.rangeB;
   const mode = selectedMode();
-  const showKeys = bothDone && mode === "different";
+  const showKeys = bothDone && !!mode;
   setStepState("keys", showKeys);
   if (showKeys) {
     rebuildKeyColumns();
     rebuildDiffColumns();
   }
+  // Show/hide "Columns to compare" — only relevant for "different"
+  $("diffColsReveal").style.display = (bothDone && mode === "different") ? "" : "none";
   refreshRunButton();
 }
 
@@ -240,12 +244,7 @@ function rebuildDiffColumns() {
 function refreshRunButton() {
   const mode     = selectedMode();
   const bothDone = !!state.rangeA && !!state.rangeB;
-  let ready = false;
-  if (mode === "missing" || mode === "matching") {
-    ready = bothDone;
-  } else if (mode === "different") {
-    ready = bothDone && selectedKeys().length > 0;
-  }
+  const ready    = bothDone && !!mode && selectedKeys().length > 0;
   $("run-area").style.display = ready ? "" : "none";
 }
 
@@ -398,31 +397,24 @@ async function runComparison() {
   const headersA   = state.rangeA.headers;
   const headersB   = state.rangeB.headers;
 
-  // For missing/matching: auto-use all common columns as the key (full-row match).
-  // For different: user picks key columns explicitly.
-  let keys;
-  if (mode === "different") {
-    keys = selectedKeys();
-    if (keys.length === 0) { showMsg("Select at least one key column.", "error"); return; }
-  } else {
-    keys = headersA.filter((h) => headersB.includes(h));
-    if (keys.length === 0) { showMsg("Tables share no common column headers.", "error"); return; }
-  }
+  const keys = selectedKeys();
+  if (keys.length === 0) { showMsg("Select at least one key column.", "error"); return; }
 
   const keyIdxA = keys.map((k) => headersA.indexOf(k));
   const keyIdxB = keys.map((k) => headersB.indexOf(k));
 
-  // Duplicate key warning (only relevant for "different" mode)
-  if (mode === "different") {
-    const dupA = findDuplicates(state.rangeA.data, keyIdxA, ignoreCase);
-    const dupB = findDuplicates(state.rangeB.data, keyIdxB, ignoreCase);
-    if (dupA.length > 0 || dupB.length > 0) {
-      let msg = "";
-      if (dupA.length) msg += "Table A:\n" + dupA.slice(0, 8).join("\n") + (dupA.length > 8 ? "\n…+" + (dupA.length - 8) + " more" : "") + "\n\n";
-      if (dupB.length) msg += "Table B:\n" + dupB.slice(0, 8).join("\n") + (dupB.length > 8 ? "\n…+" + (dupB.length - 8) + " more" : "");
-      const ok = await showModal("Duplicate Keys Detected", msg.trim() + "\n\nFirst occurrence used for matching. Proceed?");
-      if (!ok) return;
-    }
+  if (keyIdxA.some((i) => i < 0)) { showMsg("Key column not found in Table A.", "error"); return; }
+  if (keyIdxB.some((i) => i < 0)) { showMsg("Key column not found in Table B.", "error"); return; }
+
+  // Duplicate key warning
+  const dupA = findDuplicates(state.rangeA.data, keyIdxA, ignoreCase);
+  const dupB = findDuplicates(state.rangeB.data, keyIdxB, ignoreCase);
+  if (dupA.length > 0 || dupB.length > 0) {
+    let msg = "";
+    if (dupA.length) msg += "Table A:\n" + dupA.slice(0, 8).join("\n") + (dupA.length > 8 ? "\n…+" + (dupA.length - 8) + " more" : "") + "\n\n";
+    if (dupB.length) msg += "Table B:\n" + dupB.slice(0, 8).join("\n") + (dupB.length > 8 ? "\n…+" + (dupB.length - 8) + " more" : "");
+    const ok = await showModal("Duplicate Keys Detected", msg.trim() + "\n\nFirst occurrence used for matching. Proceed?");
+    if (!ok) return;
   }
 
   let diffCols = mode === "different" ? selectedDiffCols() : [];
